@@ -193,7 +193,7 @@ int main(int argc, char** argv)
     Sampler sam;
     ConvolveFilter(dest, src, filter, sam);
     cout<<"AFTER"<<endl;
-    DisplayImage(src, channels_mask);
+    DisplayImage(dest, channels_mask);
 
    /* OpenCL structures */
    cl_device_id device;
