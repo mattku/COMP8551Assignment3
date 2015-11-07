@@ -18,10 +18,17 @@ public:
 
 	float* At(size_t row, size_t col);
 
+	void* Serialize();
+	void Deserialize(float* linear_data);
+
+	size_t NumPixels() const;
+	size_t NumElements() const;
+	size_t RowElements() const;
+	size_t RowPitch() const;
+	size_t NumBytes() const;
 private:
 	size_t width_;
 	size_t height_;
 	float** pixel_data_;
 
-	size_t row_elements();
 };
