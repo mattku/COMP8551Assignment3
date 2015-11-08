@@ -74,6 +74,7 @@ void readResult(const cl_command_queue& queue, const cl_mem& mem, Image& image)
 
 int main(int argc, char** argv) 
 {
+    cout<<sizeof(CLFilterImage)<<endl;
     default_random_engine rng(0);
     Image src(IMAGE_WIDTH, IMAGE_HEIGHT, rng), filter(FILTER_WIDTH, FILTER_HEIGHT);
     Image dest(IMAGE_WIDTH, IMAGE_HEIGHT);

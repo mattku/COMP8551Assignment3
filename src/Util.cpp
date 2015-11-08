@@ -94,17 +94,15 @@ cl_mem CreateImageObject(Image& image_data, cl_context ctx, cl_mem_flags flags)
     cl_image_format img_format;
     img_format.image_channel_order = CL_RGBA;
     img_format.image_channel_data_type = CL_FLOAT;
-    cl_image_desc img_desc;
-    img_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
-    img_desc.image_width = image_data.Width();
-    img_desc.image_height = image_data.Height();
-    img_desc.image_row_pitch = image_data.RowPitch();
-    //cout<<img_desc.image_width<<" "<<img_desc.image_height<<" "<<img_desc.image_row_pitch<<endl;
-    img_desc.num_mip_levels = 0;
-    img_desc.num_samples = 0;
-    img_desc.buffer = NULL;
-    cout<<img_desc.image_width<<" "<<img_desc.image_height<<" "<<img_desc.image_row_pitch<<endl;
-    cl_mem mem_object = clCreateImage(ctx, flags, &img_format, &img_desc, host_ptr, &err);
+    cl_mem mem_object = clCreateImage2D(
+        ctx, 
+        flags, 
+        &img_format, 
+        image_data.Width(), 
+        image_data.Height(), 
+        image_data.RowPitch(), 
+        host_ptr, 
+        &err);
     if(err)
     {
         cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
