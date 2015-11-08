@@ -18,7 +18,7 @@ public:
 
 	float* At(size_t row, size_t col);
 
-	void* Serialize();
+	float* Serialize();
 	void Deserialize(float* linear_data);
 
 	size_t NumPixels() const;

@@ -53,7 +53,7 @@ float* Image::At(size_t row, size_t col)
 	return pixel_data_[row] + (col * NUM_CHANNELS);
 }
 
-void* Image::Serialize()
+float* Image::Serialize()
 {
 	float* linear_data = new float[NumElements()];
 	for(size_t i = 0; i < height_; i++)
@@ -61,7 +61,7 @@ void* Image::Serialize()
 		size_t offset = i * RowElements();
 		memcpy(linear_data + offset, pixel_data_[i], RowPitch());
 	}
-	return (void*) linear_data;
+	return linear_data;
 }
 
 void Image::Deserialize(float* linear_data)
