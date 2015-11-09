@@ -9,6 +9,7 @@
 #include <Filter.h>
 #include <Util.h>
 #include <CLFilterImage.h>
+#include <Timer.h>
 
 #include <random>
 #include <iostream>
@@ -56,25 +57,8 @@ cl_device_id create_device(cl_device_type device_type) {
     return dev;
 }
 
-void readResult(const cl_command_queue& queue, const cl_mem& mem, Image& image)
-{
-    size_t origin[3] = {0,0,0};
-    size_t region[3] = {image.Width(), image.Height(), 1};
-    size_t row_pitch = image.RowPitch();
-    size_t slice_pitch = 0;
-    float* data = new float[image.NumElements()];
-    cl_int err = clEnqueueReadImage(queue, mem, CL_TRUE, origin, region, row_pitch, slice_pitch, data, 0, NULL, NULL);
-    if(err)
-    {
-        cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
-        exit(1);
-    }
-    image.Deserialize(data);
-}
-
 int main(int argc, char** argv) 
 {
-    cout<<sizeof(CLFilterImage)<<endl;
     default_random_engine rng(0);
     Image src(IMAGE_WIDTH, IMAGE_HEIGHT, rng), filter(FILTER_WIDTH, FILTER_HEIGHT);
     Image dest(IMAGE_WIDTH, IMAGE_HEIGHT);
@@ -88,15 +72,11 @@ int main(int argc, char** argv)
     cl_device_id device;
 
     device = create_device(CL_DEVICE_TYPE_GPU);
-    cout<<"create device"<<endl;
     CLFilterImage filter_gpu(device, PROGRAM_FILE, KERNEL_FUNC);
-    cout<<"construct"<<endl;
 
     filter_gpu.InitializeMemory(src, gpu_result, filter);
-    cout<<"init mem"<<endl;
     filter_gpu.Invoke();
-    cout<<"invoke"<<endl;
-    
+    filter_gpu.ReadResult(gpu_result);
     //readResult(queue, dest_img, gpu_result);
     cout<<"Serial, CPU result: "<<endl;
     DisplayImage(dest, channels_mask);

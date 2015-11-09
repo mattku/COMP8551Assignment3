@@ -11,6 +11,7 @@ public:
 
 	void InitializeMemory(Image&, Image&, Image&);
 	void Invoke();
+	void ReadResult(Image&);
 private:
 	cl_device_id device_id_;
 	cl_context context_;

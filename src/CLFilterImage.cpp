@@ -5,7 +5,7 @@
 using namespace std;
 
 CLFilterImage::CLFilterImage(cl_device_id device_id, const char* program_file, const char* kernel_func)
-	:device_id_(device_id){
+	: device_id_(device_id){
 	create_context();
 	build_program(program_file);
 
@@ -34,11 +34,6 @@ CLFilterImage::~CLFilterImage() {
 }
 
 void CLFilterImage::InitializeMemory(Image& src, Image& dest, Image& filter) {
-	/* Create data buffers */
-	   // for(int i = 0; i < 1000; i++)
-    // {
-    // 	cout<<"!";
-    // }
     src_img_ = CreateImageObject(src, context_, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS);
 
     dest_img_ = CreateImageObject(dest, context_, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_READ_ONLY);
@@ -66,6 +61,22 @@ void CLFilterImage::Invoke() {
         cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
         exit(1);
     }
+}
+
+void CLFilterImage::ReadResult(Image& dest) {
+	size_t origin[3] = {0,0,0};
+    size_t region[3] = {dest.Width(), dest.Height(), 1};
+    size_t row_pitch = dest.RowPitch();
+    size_t slice_pitch = 0;
+    float* data = new float[dest.NumElements()];
+    cl_int err = clEnqueueReadImage(queue_, dest_img_, CL_TRUE, origin, region, row_pitch, slice_pitch, data, 0, NULL, NULL);
+    if(err)
+    {
+        cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
+        exit(1);
+    }
+    dest.Deserialize(data);
+    delete[] data;
 }
 
 void CLFilterImage::create_context()
@@ -124,4 +135,3 @@ void CLFilterImage::build_program(const char* filename) {
 		exit(1);
 	}
 }
-
