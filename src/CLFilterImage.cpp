@@ -43,19 +43,25 @@ void CLFilterImage::InitializeMemory(Image& src, Image& dest, Image& filter) {
 }
 
 void CLFilterImage::Invoke() {
+	setup_args();
+	
 	cl_int err;
-
-	err = clSetKernelArg(kernel_, 0, sizeof(cl_mem), &dest_img_);
-    err |= clSetKernelArg(kernel_, 1, sizeof(cl_mem), &src_img_);
-    err |= clSetKernelArg(kernel_, 2, sizeof(cl_mem), &filter_img_);
-    if(err)
+	size_t local_size_[2] = {1, 1};
+    err = clEnqueueNDRangeKernel(queue_, kernel_, 2, NULL, global_size_, local_size_, 0, NULL, NULL);
+    if(err) 
     {
         cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
         exit(1);
     }
+}
+
+void CLFilterImage::InvokeSubImage(size_t offset[2], size_t global_size[2]) {
+	setup_args();
+
+	cl_int err;
 
 	size_t local_size_[2] = {1, 1};
-    err = clEnqueueNDRangeKernel(queue_, kernel_, 2, NULL, global_size_, local_size_, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue_, kernel_, 2, offset, global_size, local_size_, 0, NULL, NULL);
     if(err) 
     {
         cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
@@ -134,4 +140,17 @@ void CLFilterImage::build_program(const char* filename) {
 		free(program_log);
 		exit(1);
 	}
+}
+
+void CLFilterImage::setup_args() {
+	cl_int err;
+
+	err = clSetKernelArg(kernel_, 0, sizeof(cl_mem), &dest_img_);
+    err |= clSetKernelArg(kernel_, 1, sizeof(cl_mem), &src_img_);
+    err |= clSetKernelArg(kernel_, 2, sizeof(cl_mem), &filter_img_);
+    if(err)
+    {
+        cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
+        exit(1);
+    }
 }

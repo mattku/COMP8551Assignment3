@@ -1,22 +1,16 @@
 #include <Timer.h>
 
-Timer::Timer() {
-	//I don't think anything needs to happen in this
-}
-
-Timer::~Timer() {
-	//Shrug
-}
+using namespace std::chrono;
 
 void Timer::Start() {
-	start_ = std::chrono::system_clock::now();
+	start_ = system_clock::now();
 }
 
 void Timer::End() {
-	end_ = std::chrono::system_clock::now();
+	end_ = system_clock::now();
 }
 
-double Timer::ElapsedTime() {
+duration<double> Timer::ElapsedTime() {
 	elapsed_seconds_ = end_ - start_;
-	return elapsed_seconds_.count();
+	return elapsed_seconds_;
 }

@@ -11,6 +11,7 @@ public:
 
 	void InitializeMemory(Image&, Image&, Image&);
 	void Invoke();
+	void InvokeSubImage(size_t offset[2], size_t global_size[2]);
 	void ReadResult(Image&);
 private:
 	cl_device_id device_id_;
@@ -23,4 +24,5 @@ private:
 
 	void create_context();
 	void build_program(const char*);
+	void setup_args();
 };

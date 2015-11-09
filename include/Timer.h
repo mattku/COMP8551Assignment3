@@ -11,12 +11,10 @@ ElapsedTime will give you an erroneous value.
 class Timer
 {
 public:
-	Timer();
-	~Timer();
 
 	void Start();
 	void End();
-	double ElapsedTime();
+	std::chrono::duration<double> ElapsedTime();
 private:
 	std::chrono::time_point<std::chrono::system_clock> start_, end_;
 	std::chrono::duration<double> elapsed_seconds_;
