@@ -1,6 +1,7 @@
 #include <CLFilterImage.h>
-#include <iostream>
 #include <Util.h>
+
+#include <iostream>
 
 using namespace std;
 
@@ -26,7 +27,6 @@ CLFilterImage::CLFilterImage(cl_device_id device_id, const char* program_file, c
 }
 
 CLFilterImage::~CLFilterImage() {
-	/* Deallocate resources */
     clReleaseKernel(kernel_);
     clReleaseCommandQueue(queue_);
 	clReleaseProgram(program_);
@@ -38,6 +38,7 @@ void CLFilterImage::InitializeMemory(Image& src, Image& dest, Image& filter) {
 
     dest_img_ = CreateImageObject(dest, context_, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_READ_ONLY);
     filter_img_ = CreateImageObject(filter, context_, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS);
+
     global_size_[0] = src.Width();
     global_size_[1] = src.Height();
 }
@@ -45,7 +46,7 @@ void CLFilterImage::InitializeMemory(Image& src, Image& dest, Image& filter) {
 void CLFilterImage::Invoke() {
 	setup_args();
 	
-	cl_int err;
+	cl_int err = 0;
 	size_t local_size_[2] = {1, 1};
     err = clEnqueueNDRangeKernel(queue_, kernel_, 2, NULL, global_size_, local_size_, 0, NULL, NULL);
     if(err) 
@@ -58,7 +59,7 @@ void CLFilterImage::Invoke() {
 void CLFilterImage::InvokeSubImage(size_t offset[2], size_t global_size[2]) {
 	setup_args();
 
-	cl_int err;
+	cl_int err = 0;
 
 	size_t local_size_[2] = {1, 1};
     err = clEnqueueNDRangeKernel(queue_, kernel_, 2, offset, global_size, local_size_, 0, NULL, NULL);

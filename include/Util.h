@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Image.h"
-#include <OpenCL/cl.h>
+
+#include "include-opencl.h"
 
 void DisplayImage(Image& image, bool* display_channels);
 std::string ErrorString(cl_int);

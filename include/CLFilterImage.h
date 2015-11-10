@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Image.h"
-#include <OpenCL/cl.h>
+
+#include "include-opencl.h"
 
 class CLFilterImage
 {

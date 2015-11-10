@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+
 using namespace std;
 
 void DisplayImage(Image& image, bool* display_channels)
@@ -86,15 +87,12 @@ cl_mem CreateImageObject(Image& image_data, cl_context ctx, cl_mem_flags flags)
 {
     cl_int err = 0;
     float* host_ptr = image_data.Serialize();
-    // for(size_t i = 0; i < image_data.NumElements(); i++)
-    // {
-    // 	cout<<host_ptr[i]<<" "<<endl;
-    // }
-    //cout<<"serialize"<<endl;
     cl_image_format img_format;
     img_format.image_channel_order = CL_RGBA;
     img_format.image_channel_data_type = CL_FLOAT;
-    cl_mem mem_object = clCreateImage2D(
+    cl_mem mem_object;
+    //the non-deprecated clCreateImage was causing crashes on lab computers.
+    mem_object = clCreateImage2D(
         ctx, 
         flags, 
         &img_format, 
@@ -105,9 +103,9 @@ cl_mem CreateImageObject(Image& image_data, cl_context ctx, cl_mem_flags flags)
         &err);
     if(err)
     {
-        cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
+        cerr<<"OpenCL Error: "<<ErrorString(err)<<" "<<err<<endl;
         exit(1);
     }
-    //delete[] host_ptr;
+    delete[] host_ptr;
     return mem_object;
 }

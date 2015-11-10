@@ -6,6 +6,11 @@
 #define IMAGE_HEIGHT 4096
 #define IMAGE_WIDTH 4096
 
+#define FILTER_HEIGHT_SMALL 3
+#define FILTER_WIDTH_SMALL 3
+#define IMAGE_HEIGHT_SMALL 16
+#define IMAGE_WIDTH_SMALL 16
+
 #include <Filter.h>
 #include <Util.h>
 #include <CLFilterImage.h>
@@ -19,24 +24,24 @@
 #include <string.h>
 #include <time.h>
 
-#include <OpenCL/cl.h>
+#include "include-opencl.h"
 
 using namespace std;
 using namespace std::chrono;
 
-/* Find a GPU or CPU associated with the first available platform */
+/* Find a device associated with any platform */
 cl_device_id create_device(cl_device_type device_type) {
 
     cl_platform_id platforms[3];
     cl_uint num_platforms;
     cl_device_id dev;
-    int err;
+    cl_int err = 0;
     bool device_available = false;
 
     /* Identify a platform */
     err = clGetPlatformIDs(3, platforms, &num_platforms);
-    if(err < 0) {
-        cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
+    if(err) {
+        cerr<<"OpenCL Error clGetPlatformIDs: "<<ErrorString(err)<<" "<<err<<endl;
         exit(1);
     } 
 
@@ -44,7 +49,7 @@ cl_device_id create_device(cl_device_type device_type) {
     for(size_t i = 0; i < num_platforms; i++) {
         err = clGetDeviceIDs(platforms[i], device_type, 1, &dev, NULL);
         if(err && err != CL_DEVICE_NOT_FOUND) {
-            cerr<<"OpenCL Error: "<<ErrorString(err)<<endl;
+            cerr<<"OpenCL Error clGetDeviceIDs: "<<ErrorString(err)<<endl;
             exit(1);   
         }
         else if(!err) {
@@ -52,51 +57,32 @@ cl_device_id create_device(cl_device_type device_type) {
         }
     }   
     if(!device_available) {
-        cerr<<"No devices Error: "<<endl;
+        cerr<<"No devices available"<<endl;
         exit(1);
     }
     return dev;
 }
 
-void DisplayResult(Image& result, string msg, duration<double> time_taken)
+void DisplayResult(string msg, duration<double> time_taken)
 {
-    bool channels_mask[4] = {true, false, false, false};
-    cout<<msg<<endl;
-
-    //*****UNCOMMENT THIS TO DISPLAY THE R CHANNEL OF THE RESULTING IMAGE*****
-    //DisplayImage(result, channels_mask);
-    cout<<"Time: "<<time_taken.count()<<endl;
+    cout<<msg<<endl
+        <<"Time: "<<time_taken.count()<<" seconds "<<endl;
 }
 
-void DisplayCombinedResult(Image& im1, Image& im2, string msg, duration<double> time_taken)
+duration<double> RunSerial(Image& result, Image& src, Image& filter)
 {
-    bool channels_mask[4] = {true, false, false, false};
-    cout<<msg<<endl;
-
-    //*****UNCOMMENT THESE TO DISPLAY THE R CHANNEL OF THE RESULTING IMAGES*****
-    //DisplayImage(im_1, channels_mask);
-    //DisplayImage(im_2, channels_mask);
-    cout<<"Time: "<<time_taken.count()<<endl;
-}
-
-void RunSerial(Image& src, Image& filter)
-{
-    Image result(IMAGE_WIDTH, IMAGE_HEIGHT);
-
+    Sampler sam;
     Timer t;
     t.Start();
     //////////////////////////////////////////
-    Sampler sam;
     ConvolveFilter(result, src, filter, sam);
     //////////////////////////////////////////
     t.End();
-    DisplayResult(result, "Serial, CPU result: ", t.ElapsedTime());
+    return t.ElapsedTime();
 }
 
-void RunGPU(Image& src, Image& filter)
+duration<double> RunGPU(Image& result, Image& src, Image& filter)
 {
-    Image result(IMAGE_WIDTH, IMAGE_HEIGHT);
-    /* OpenCL structures */
     cl_device_id device;
 
     device = create_device(CL_DEVICE_TYPE_GPU);
@@ -109,13 +95,11 @@ void RunGPU(Image& src, Image& filter)
     filterer.ReadResult(result);
     /////////////////////////////////////////////////
     t.End();
-    DisplayResult(result, "GPU result: ", t.ElapsedTime());
+    return t.ElapsedTime();
 }
 
-void RunCPU(Image& src, Image& filter)
+duration<double> RunCPU(Image& result, Image& src, Image& filter)
 {
-    Image result(IMAGE_WIDTH, IMAGE_HEIGHT);
-    /* OpenCL structures */
     cl_device_id device;
 
     device = create_device(CL_DEVICE_TYPE_CPU);
@@ -128,14 +112,11 @@ void RunCPU(Image& src, Image& filter)
     filterer.ReadResult(result);
     /////////////////////////////////////////////////
     t.End();
-    DisplayResult(result, "CPU result: ", t.ElapsedTime());
+    return t.ElapsedTime();
 }
 
-void RunSplit(Image& src, Image& filter)
+duration<double> RunSplit(Image& result_gpu, Image& result_cpu, Image& src, Image& filter)
 {
-    Image result_gpu(IMAGE_WIDTH, IMAGE_HEIGHT);
-    Image result_cpu(IMAGE_WIDTH, IMAGE_HEIGHT);
-    /* OpenCL structures */
     cl_device_id gpu_device, cpu_device;
 
     gpu_device = create_device(CL_DEVICE_TYPE_GPU);
@@ -156,23 +137,69 @@ void RunSplit(Image& src, Image& filter)
     cpu_filter.ReadResult(result_cpu);
     /////////////////////////////////////////////////
     t.End();
-    DisplayCombinedResult(result_gpu, result_cpu, "Combined result: ", t.ElapsedTime());
+    return t.ElapsedTime();
+}
 
+void ShowThatItWorks(default_random_engine& rng)
+{
+    //initialize the source image randomly in (0,1)
+    Image src(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL, rng), 
+    //others are initialized to 0
+          filter(FILTER_WIDTH_SMALL, FILTER_HEIGHT_SMALL),
+          dest_serial(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL),
+          dest_gpu(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL),
+          dest_cpu(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL),
+          dest_combined_gpu(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL),
+          dest_combined_cpu(IMAGE_WIDTH_SMALL, IMAGE_HEIGHT_SMALL);
+    //initialize the filter
+    MakeBlurFilter(filter);
+
+    bool channels_mask[4] = {true, false, false, false}; //display only the R channel, for readability.
+
+
+    DisplayResult("GPU: ", RunGPU(dest_gpu, src, filter));
+    DisplayImage(dest_gpu, channels_mask);
+
+    DisplayResult("CPU: ", RunCPU(dest_cpu, src, filter));
+    DisplayImage(dest_cpu, channels_mask);
+
+    DisplayResult("GPU/CPU Combined: ", RunSplit(dest_combined_gpu, dest_combined_cpu, src, filter));
+    DisplayImage(dest_combined_gpu, channels_mask);
+    DisplayImage(dest_combined_cpu, channels_mask);
+
+    DisplayResult("Serial, CPU: ", RunSerial(dest_serial, src, filter));
+    DisplayImage(dest_serial, channels_mask);
+}
+
+void DoItForReal(default_random_engine& rng)
+{
+    //initialize the source image randomly in (0,1)
+    Image src(IMAGE_WIDTH, IMAGE_HEIGHT, rng), 
+    //others are initialized to 0
+          filter(FILTER_WIDTH, FILTER_HEIGHT),
+          dest_serial(IMAGE_WIDTH, IMAGE_HEIGHT),
+          dest_gpu(IMAGE_WIDTH, IMAGE_HEIGHT),
+          dest_cpu(IMAGE_WIDTH, IMAGE_HEIGHT),
+          dest_combined_gpu(IMAGE_WIDTH, IMAGE_HEIGHT),
+          dest_combined_cpu(IMAGE_WIDTH, IMAGE_HEIGHT);
+
+    MakeBlurFilter(filter);
+
+    DisplayResult("GPU: ", RunGPU(dest_gpu, src, filter));
+
+    DisplayResult("CPU: ", RunCPU(dest_cpu, src, filter));
+
+    DisplayResult("GPU/CPU Combined: ", RunSplit(dest_combined_gpu, dest_combined_cpu, src, filter));
+
+    DisplayResult("Serial, CPU: ", RunSerial(dest_serial, src, filter));
 }
 
 int main(int argc, char** argv) 
 {
     default_random_engine rng(0);
-    Image src(IMAGE_WIDTH, IMAGE_HEIGHT, rng), filter(FILTER_WIDTH, FILTER_HEIGHT);
-    MakeBlurFilter(filter);
-
-    RunGPU(src, filter);
-
-    RunCPU(src, filter);
-
-    RunSplit(src, filter);
-
-    RunSerial(src, filter);
-
+    cout<<"Running on small images to demonstrate correctness..."<<endl;
+    ShowThatItWorks(rng);
+    cout<<"Running on large images, this may take a while..."<<endl;
+    DoItForReal(rng);
     return 0;
 }

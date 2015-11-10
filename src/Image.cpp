@@ -1,5 +1,8 @@
 #include <Image.h>
+
 #include <iostream>
+#include <cstring>
+
 using namespace std;
 const size_t Image::NUM_CHANNELS = 4;
 
